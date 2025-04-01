@@ -33,7 +33,6 @@ export const geolocation = listeningSignal<
 		update(e);
 	};
 	const id = navigator.geolocation.watchPosition(callback, error, {
-		maximumAge: 3_000,
 		enableHighAccuracy: true,
 	});
 	return () => {

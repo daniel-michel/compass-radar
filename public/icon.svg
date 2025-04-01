@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="100mm"
+   height="100mm"
+   viewBox="0 0 100 100"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
+   sodipodi:docname="icon.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#191919"
+     bordercolor="#515151"
+     borderopacity="1"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#292929"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.75098905"
+     inkscape:cx="151.13403"
+     inkscape:cy="173.77084"
+     inkscape:window-width="1920"
+     inkscape:window-height="1052"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1"
+     showguides="true">
+    <sodipodi:guide
+       position="50,50"
+       orientation="0.70710678,0.70710678"
+       id="guide1"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="50,50"
+       orientation="-0.70710678,0.70710678"
+       id="guide2"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="50,69.999999"
+       orientation="0.70710678,0.70710678"
+       id="guide3"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+    <sodipodi:guide
+       position="50,30"
+       orientation="0.70710678,0.70710678"
+       id="guide4"
+       inkscape:locked="false"
+       inkscape:label=""
+       inkscape:color="rgb(0,134,229)" />
+  </sodipodi:namedview>
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <circle
+       style="fill:none;stroke:#818181;stroke-width:3;stroke-linecap:square;stroke-dasharray:none;stroke-opacity:1"
+       id="path4"
+       cx="50"
+       cy="50"
+       r="46" />
+    <g
+       id="g8-5"
+       transform="matrix(0,0.8,-0.8,0,90,9.9999996)">
+      <path
+         style="fill:#b1b1b1;fill-opacity:1;stroke:none;stroke-width:3;stroke-linecap:square;stroke-dasharray:none;stroke-opacity:1"
+         d="M 40,60 0,0 50,50 Z"
+         id="path5-3"
+         sodipodi:nodetypes="cccc" />
+      <path
+         style="fill:#8e8e8e;fill-opacity:1;stroke:none;stroke-width:3;stroke-linecap:square;stroke-dasharray:none;stroke-opacity:1"
+         d="M 50,50 0,0 59.999998,39.999999 Z"
+         id="path6-5" />
+      <path
+         style="fill:#9d9d9d;fill-opacity:1;stroke:none;stroke-width:3;stroke-linecap:square;stroke-dasharray:none;stroke-opacity:1"
+         d="M 39.999999,59.999998 100,100 50,50 Z"
+         id="path7-6" />
+      <path
+         style="fill:#747474;fill-opacity:1;stroke:none;stroke-width:3;stroke-linecap:square;stroke-dasharray:none;stroke-opacity:1"
+         d="M 100,100 50,50 59.999998,39.999999 Z"
+         id="path8-2" />
+    </g>
+    <g
+       id="g8">
+      <path
+         style="fill:#d85454;fill-opacity:1;stroke:none;stroke-width:3;stroke-linecap:square;stroke-dasharray:none;stroke-opacity:1"
+         d="M 40,60 0,0 50,50 Z"
+         id="path5"
+         sodipodi:nodetypes="cccc" />
+      <path
+         style="fill:#ff6b6b;fill-opacity:1;stroke:none;stroke-width:3;stroke-linecap:square;stroke-dasharray:none;stroke-opacity:1"
+         d="M 50,50 0,0 59.999998,39.999999 Z"
+         id="path6" />
+      <path
+         style="fill:#5275f4;fill-opacity:1;stroke:none;stroke-width:3;stroke-linecap:square;stroke-dasharray:none;stroke-opacity:1"
+         d="M 39.999999,59.999998 100,100 50,50 Z"
+         id="path7" />
+      <path
+         style="fill:#6b8bff;fill-opacity:1;stroke:none;stroke-width:3;stroke-linecap:square;stroke-dasharray:none;stroke-opacity:1"
+         d="M 100,100 50,50 59.999998,39.999999 Z"
+         id="path8" />
+    </g>
+    <ellipse
+       style="fill:#f0f0f0;fill-opacity:1;stroke:#ff8a37;stroke-width:0.0141111;stroke-linecap:square"
+       id="path1"
+       cx="50"
+       cy="50"
+       rx="4.0000005"
+       ry="4" />
+  </g>
+</svg>

@@ -5,7 +5,7 @@ import { computed, signal } from "@lit-labs/signals";
  */
 export function asyncComputed<S, T>(
 	input: () => S,
-	compute: (state: S) => PromiseLike<T>
+	compute: (state: S) => PromiseLike<T>,
 ) {
 	let counter = 0;
 	const sigState = signal<{ count: number; value: T } | undefined>(undefined);
@@ -38,7 +38,7 @@ export function asyncComputed<S, T>(
  * **Warning:** once the signal is no longer used one more updated needs to come from the listener before it is cleaned up
  */
 export function listeningSignal<T>(
-	setup: (update: (value: T) => void) => () => void
+	setup: (update: (value: T) => void) => () => void,
 ) {
 	const sigState = signal<T | undefined>(undefined);
 	let cleanup: undefined | (() => void);

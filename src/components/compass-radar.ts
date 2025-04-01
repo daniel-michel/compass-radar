@@ -171,7 +171,7 @@ export class CompassRadar extends SignalWatcher(LitElement) {
 							/>
 						`;
 							})}
-							<feFlood flood-color="transparent" result="result0" />
+							<feFlood flood-color="rgba(0, 0, 0, 0.05)" result="result0" />
 							${points.map(
 								(_, i) =>
 									svg`<feBlend mode="screen" in="result${i}" in2=${`pof${i}`} result="result${
@@ -263,7 +263,6 @@ export class CompassRadar extends SignalWatcher(LitElement) {
 			background-color: hsl(0, 0%, 0%);
 			border-radius: 100%;
 			/* border: 0.7cqmin solid hsl(0, 0%, 50%); */
-			box-shadow: inset 0 0 4cqmin hsla(0, 0%, 100%, 0.5);
 			font-size: 4cqmin;
 			width: 95cqmin;
 			height: 95cqmin;
@@ -272,6 +271,17 @@ export class CompassRadar extends SignalWatcher(LitElement) {
 			--heading: 0deg;
 			transform: translate(-50%, -50%) rotate(var(--heading));
 			position: absolute;
+
+			&::after {
+				content: "";
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				border-radius: 100%;
+				box-shadow: inset 0 0 4cqmin hsla(0, 0%, 100%, 0.5);
+			}
 
 			.north,
 			.south,

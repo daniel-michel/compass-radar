@@ -1,0 +1,13 @@
+:root {
+	color-scheme: dark;
+	height: 100%;
+}
+
+body {
+	width: 100vw;
+	height: 100%;
+	margin: 0;
+	background-color: hsl(220, 16%, 7%);
+	overflow: clip;
+	font-family: sans-serif;
+}

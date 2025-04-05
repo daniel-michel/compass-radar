@@ -11,6 +11,7 @@ import Color from "colorjs.io";
 import PinDrop from "../assets/icons/pin_drop.svg";
 import WrongLocation from "../assets/icons/wrong_location.svg";
 import ArrowUp from "../assets/icons/keyboard_arrow_up.svg";
+import { classMap } from "lit/directives/class-map.js";
 
 const EARTH_RADIUS = 6_371_000; // in meters
 const HALF_EARTH_CIRCUMFERENCE = Math.PI * EARTH_RADIUS;
@@ -152,20 +153,20 @@ export class CompassRadar extends SignalWatcher(LitElement) {
 		const svgSize = 100;
 		const pointsRadius = svgSize * (3 / 100);
 		const location = geolocation.get();
-		if (location instanceof GeolocationPositionError) {
-			return html`<div class="error">
-				Error getting location: ${location.message}
-			</div>`;
-		}
-		if (!location) {
-			return html`<div class="error">No location available</div>`;
-		}
 		const distanceToRadius = (distance: number) => {
 			const radius =
 				(Math.log(distance + 1) * DISTANCE_LOG_FACTOR * svgSize) / 2;
 			return radius;
 		};
-		const coord = parseLocationEvent(location);
+		const coord =
+			location instanceof GeolocationPosition
+				? parseLocationEvent(location)
+				: (this.locationHistory.get()?.at(-1)?.coord ?? [0, 0]);
+		const accuracy =
+			location instanceof GeolocationPosition
+				? location.coords.accuracy
+				: (this.locationHistory.get()?.at(-1)?.accuracy ??
+					HALF_EARTH_CIRCUMFERENCE);
 		const points = this.bookmarks.get() ?? [];
 		const polarCoordinates = points.map((point) => {
 			const dist = distance(coord, point.coord);
@@ -179,11 +180,11 @@ export class CompassRadar extends SignalWatcher(LitElement) {
 				hue: point.hue,
 			};
 		});
-		return html` ${!deviceOrientationAbsoluteWhenAvailable.get()?.absolute
-				? html`<div class="warning">Compass heading unavailable</div>`
-				: nothing}
-			<div
-				class="compass"
+		return html`<div
+				class=${classMap({
+					compass: true,
+					"no-heading": !deviceOrientationAbsoluteWhenAvailable.get()?.absolute,
+				})}
 				style=${styleMap({
 					"--heading": `${compassHeading.get() ?? 0}deg`,
 				})}
@@ -251,7 +252,7 @@ export class CompassRadar extends SignalWatcher(LitElement) {
 					<circle
 						cx=${svgSize / 2}
 						cy=${svgSize / 2}
-						r=${distanceToRadius(location.coords.accuracy)}
+						r=${distanceToRadius(accuracy)}
 						stroke="hsla(0, 0%, 100%, 0.4)"
 						stroke-width=${svgSize * 0.004}
 						fill="transparent"
@@ -262,19 +263,24 @@ export class CompassRadar extends SignalWatcher(LitElement) {
 							y="0"
 							transform="rotate(${-(
 								compassHeading.get() ?? 0
-							)}) translate(0 ${-distanceToRadius(location.coords.accuracy) -
-							2})"
+							)}) translate(0 ${-distanceToRadius(accuracy) - 2})"
 							text-anchor="middle"
 							fill="white"
 							font-size="3"
 							dy=".3em"
 						>
-							${location.coords.accuracy.toFixed(0)} m
+							${accuracy.toFixed(0)} m
 						</text>
 					</g>
 					${this.renderLocationHistoryPath(coord, distanceToRadius, svgSize)}
 				</svg>
-			</div>`;
+			</div>
+			${composeMessages((add) => {
+				if (location instanceof GeolocationPositionError) {
+					add("error", location.message);
+				}
+				add("warning", "location unavailable", !location);
+			})}`;
 	}
 
 	private renderLocationHistoryPath(
@@ -312,16 +318,33 @@ export class CompassRadar extends SignalWatcher(LitElement) {
 			position: relative;
 			container-type: size;
 
-			.warning {
+			.messages {
 				position: absolute;
-				top: 0;
-				left: 0;
-				margin: 1cqmax;
-				font-size: 1.8cqmax;
-				color: hsl(40, 100%, 70%);
-				padding: 0.3em 0.5em;
-				border-radius: 0.5em;
-				background-color: hsl(40, 100%, 10%);
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -50%);
+				font-size: 4cqmin;
+				box-shadow: 0 0 2cqmin 2cqmin hsla(0, 0%, 0%, 0.5);
+				background-color: hsla(0, 0%, 0%, 0.5);
+				z-index: 1;
+				animation: blink 2s infinite;
+
+				p:first-child {
+					margin-top: 0;
+				}
+				p:last-child {
+					margin-bottom: 0;
+				}
+
+				.error {
+					color: hsl(0, 100%, 70%);
+				}
+				.warning {
+					color: hsl(40, 100%, 70%);
+				}
+				.info {
+					color: hsl(210, 100%, 70%);
+				}
 			}
 		}
 
@@ -355,6 +378,11 @@ export class CompassRadar extends SignalWatcher(LitElement) {
 			.east {
 				position: absolute;
 				padding: 1.5cqmin;
+
+				opacity: 1;
+				.no-heading & {
+					opacity: 0.5;
+				}
 
 				width: 7cqmin;
 				&.north {
@@ -408,6 +436,18 @@ export class CompassRadar extends SignalWatcher(LitElement) {
 
 			img {
 				width: 60%;
+			}
+		}
+
+		@keyframes blink {
+			0% {
+				opacity: 0;
+			}
+			50% {
+				opacity: 1;
+			}
+			100% {
+				opacity: 0;
 			}
 		}
 	`;
@@ -476,4 +516,37 @@ export function localStorageValue<T>(key: string, defaultValue?: T) {
 			localStorage.removeItem(key);
 		},
 	};
+}
+
+function composeMessages(
+	compose: (
+		add: (
+			category: "info" | "warning" | "error",
+			message: string,
+			active?: boolean,
+		) => void,
+	) => void,
+) {
+	const messages: {
+		category: "info" | "warning" | "error";
+		message: string;
+	}[] = [];
+	compose((category, message, active) => {
+		if (active !== false) {
+			messages.push({ category, message });
+		}
+	});
+	const priority = ["error", "warning", "info"];
+	messages.sort(
+		(a, b) => priority.indexOf(a.category) - priority.indexOf(b.category),
+	);
+	if (messages.length > 0) {
+		return html`<div class="messages">
+			${messages.map(
+				(message) =>
+					html`<p class=${message.category}>&gt; ${message.message}</p>`,
+			)}
+		</div>`;
+	}
+	return nothing;
 }

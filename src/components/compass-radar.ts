@@ -5,7 +5,7 @@ import {
 	deviceOrientationAbsoluteWhenAvailable,
 	geolocation,
 } from "../location-signal";
-import { SignalWatcher } from "@lit-labs/signals";
+import { computed, SignalWatcher } from "@lit-labs/signals";
 import { styleMap } from "lit/directives/style-map.js";
 import Color from "colorjs.io";
 import PinDrop from "../assets/icons/pin_drop.svg";
@@ -22,43 +22,94 @@ type LocationBookmark = {
 	coord: Coord;
 	hue: number;
 	label?: string;
-	createdAt?: Date;
+	createdAt?: number;
 };
+
+type LocationHistoryEntry = {
+	coord: Coord;
+	accuracy: number;
+	timestamp: number;
+};
+
+const MAX_HISTORY_LENGTH = 100;
 
 @customElement("compass-radar")
 export class CompassRadar extends SignalWatcher(LitElement) {
-	points?: LocationBookmark[] = undefined;
-	localStorageKey = "location-bookmarks";
+	bookmarks = localStorageValue<LocationBookmark[]>("location-bookmarks");
+	locationHistory =
+		localStorageValue<LocationHistoryEntry[]>("location-history");
 
-	constructor() {
-		super();
-		const savedPointsJSON = localStorage.getItem(this.localStorageKey);
-		if (savedPointsJSON) {
-			this.points = JSON.parse(savedPointsJSON);
-		} else {
-			this.points = [];
+	$recordHistory = computed(() => {
+		const location = geolocation.get();
+		if (!(location instanceof GeolocationPosition)) {
+			return location;
 		}
-	}
+		const coord = parseLocationEvent(location);
+		const accuracy = location.coords.accuracy;
+		const history = this.locationHistory.get() ?? [];
+		if (history.length > MAX_HISTORY_LENGTH) {
+			history.splice(0, history.length - MAX_HISTORY_LENGTH);
+		}
+		const lastEntry = history.at(-1);
+		let newEntry: LocationHistoryEntry;
+		if (
+			lastEntry &&
+			distance(coord, lastEntry.coord) <
+				Math.max(lastEntry.accuracy, accuracy) &&
+			location.timestamp - lastEntry.timestamp < 30_000
+		) {
+			history.pop();
+			const coordMergeT =
+				(Math.min(location.coords.accuracy, lastEntry.accuracy) /
+					Math.max(location.coords.accuracy, lastEntry.accuracy)) *
+				0.5;
+			const coordMerge: Coord =
+				location.coords.accuracy < lastEntry.accuracy
+					? [
+							coord[0] * (1 - coordMergeT) + lastEntry.coord[0] * coordMergeT,
+							coord[1] * (1 - coordMergeT) + lastEntry.coord[1] * coordMergeT,
+						]
+					: [
+							lastEntry.coord[0] * (1 - coordMergeT) + coord[0] * coordMergeT,
+							lastEntry.coord[1] * (1 - coordMergeT) + coord[1] * coordMergeT,
+						];
+			newEntry = {
+				coord: coordMerge,
+				accuracy: Math.min(location.coords.accuracy, lastEntry.accuracy),
+				timestamp: (location.timestamp + lastEntry.timestamp) * 0.5,
+			};
+		} else {
+			newEntry = {
+				coord,
+				accuracy,
+				timestamp: location.timestamp,
+			};
+		}
+		this.locationHistory.set([...history, newEntry]);
+		this.requestUpdate();
+		return location;
+	});
 
 	addBookmark(point: Coord) {
 		const hue = Math.random() * 360;
-		this.points?.push({
-			coord: point,
-			hue,
-		});
-		if (this.points) {
-			localStorage.setItem(this.localStorageKey, JSON.stringify(this.points));
-		}
+		this.bookmarks.set([
+			...(this.bookmarks.get() ?? []),
+			{
+				coord: point,
+				hue,
+				createdAt: Date.now(),
+			},
+		]);
 		this.requestUpdate();
 	}
 
 	clearBookmarks() {
-		this.points = [];
-		localStorage.removeItem(this.localStorageKey);
+		this.bookmarks.clear();
 		this.requestUpdate();
 	}
 
 	render() {
+		this.$recordHistory.get();
 		return html`
 			<div class="layout">
 				<div class="compass-area">
@@ -74,10 +125,7 @@ export class CompassRadar extends SignalWatcher(LitElement) {
 								console.error("No location available");
 								return;
 							}
-							const coord: Coord = [
-								(location.coords.latitude / 180) * Math.PI,
-								(location.coords.longitude / 180) * Math.PI,
-							];
+							const coord = parseLocationEvent(location);
 							this.addBookmark(coord);
 						}}
 						tooltip="Add bookmark"
@@ -117,11 +165,8 @@ export class CompassRadar extends SignalWatcher(LitElement) {
 				(Math.log(distance + 1) * DISTANCE_LOG_FACTOR * svgSize) / 2;
 			return radius;
 		};
-		const coord: Coord = [
-			(location.coords.latitude / 180) * Math.PI,
-			(location.coords.longitude / 180) * Math.PI,
-		];
-		const points = this.points ?? [];
+		const coord = parseLocationEvent(location);
+		const points = this.bookmarks.get() ?? [];
 		const polarCoordinates = points.map((point) => {
 			const dist = distance(coord, point.coord);
 			const bearing = calculateBearing(coord, point.coord);
@@ -184,7 +229,7 @@ export class CompassRadar extends SignalWatcher(LitElement) {
 								result="blurred"
 							/>
 							<feColorMatrix
-								in="blur"
+								in="blurred"
 								mode="matrix"
 								values="1 0 0 0 0
 									0 1 0 0 0
@@ -227,8 +272,29 @@ export class CompassRadar extends SignalWatcher(LitElement) {
 							${location.coords.accuracy.toFixed(0)} m
 						</text>
 					</g>
+					${this.renderLocationHistoryPath(coord, distanceToRadius, svgSize)}
 				</svg>
 			</div>`;
+	}
+
+	private renderLocationHistoryPath(
+		coord: Coord,
+		distanceToRadius: (distance: number) => number,
+		svgSize: number,
+	) {
+		// TODO: straight lines may be wrong (especially close to the center) due to the logarithmic scale
+		const history = this.locationHistory.get();
+		if (!history || history.length === 0) return nothing;
+		const points = history.map((entry) => {
+			const dist = distance(coord, entry.coord);
+			const bearing = calculateBearing(coord, entry.coord);
+			const radius = distanceToRadius(dist);
+			const cx = Math.cos(bearing - Math.PI / 2) * radius + svgSize / 2;
+			const cy = Math.sin(bearing - Math.PI / 2) * radius + svgSize / 2;
+			return { cx, cy };
+		});
+		const d = `M ${points.map((point) => `${point.cx} ${point.cy}`).join(" L ")}`;
+		return svg`<path d="${d}" stroke="hsla(230, 100%, 70%, 0.7)" fill="none" stroke-width="${svgSize * 0.004}" />`;
 	}
 
 	static styles = css`
@@ -323,17 +389,6 @@ export class CompassRadar extends SignalWatcher(LitElement) {
 				height: 100%;
 				border-radius: 100%;
 			}
-
-			.point {
-				position: absolute;
-				top: calc((1 - var(--y)) * 50%);
-				left: calc((var(--x) + 1) * 50%);
-				background-color: red;
-				width: 1em;
-				height: 1em;
-				border-radius: 100%;
-				transform: translate(-50%, -50%);
-			}
 		}
 
 		button:has(img) {
@@ -380,4 +435,45 @@ function distance(first: Coord, second: Coord) {
 	const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 	const distance = EARTH_RADIUS * c; // in meters
 	return distance;
+}
+
+function parseLocationEvent(
+	event?: GeolocationPositionError | GeolocationPosition,
+) {
+	if (event instanceof GeolocationPositionError) {
+		throw event;
+	}
+	if (!event) {
+		throw new Error("No location available");
+	}
+	const coord: Coord = [
+		(event.coords.latitude / 180) * Math.PI,
+		(event.coords.longitude / 180) * Math.PI,
+	];
+	return coord;
+}
+
+export function localStorageValue<T>(key: string, defaultValue?: T) {
+	let value: T | undefined;
+	return {
+		get() {
+			if (value === undefined) {
+				const savedValue = localStorage.getItem(key);
+				if (savedValue) {
+					value = JSON.parse(savedValue);
+				} else {
+					value = defaultValue;
+				}
+			}
+			return value;
+		},
+		set(newValue: T) {
+			value = newValue;
+			localStorage.setItem(key, JSON.stringify(newValue));
+		},
+		clear() {
+			value = undefined;
+			localStorage.removeItem(key);
+		},
+	};
 }

@@ -30,6 +30,9 @@ type LocationHistoryEntry = {
 	coord: Coord;
 	accuracy: number;
 	timestamp: number;
+	mergeLimit?: {
+		distance: number;
+	};
 };
 
 const MAX_HISTORY_LENGTH = 100;
@@ -52,14 +55,13 @@ export class CompassRadar extends SignalWatcher(LitElement) {
 			history.splice(0, history.length - MAX_HISTORY_LENGTH);
 		}
 		const lastEntry = history.at(-1);
-		let newEntry: LocationHistoryEntry;
+		let newEntry: LocationHistoryEntry | undefined;
 		if (
 			lastEntry &&
 			distance(coord, lastEntry.coord) <
 				Math.max(lastEntry.accuracy, accuracy) &&
 			location.timestamp - lastEntry.timestamp < 30_000
 		) {
-			history.pop();
 			const coordMergeT =
 				(Math.min(location.coords.accuracy, lastEntry.accuracy) /
 					Math.max(location.coords.accuracy, lastEntry.accuracy)) *
@@ -74,16 +76,37 @@ export class CompassRadar extends SignalWatcher(LitElement) {
 							lastEntry.coord[0] * (1 - coordMergeT) + coord[0] * coordMergeT,
 							lastEntry.coord[1] * (1 - coordMergeT) + coord[1] * coordMergeT,
 						];
-			newEntry = {
-				coord: coordMerge,
-				accuracy: Math.min(location.coords.accuracy, lastEntry.accuracy),
-				timestamp: (location.timestamp + lastEntry.timestamp) * 0.5,
-			};
-		} else {
+			const mergedTimestamp = (location.timestamp + lastEntry.timestamp) * 0.5;
+			if (
+				!lastEntry.mergeLimit ||
+				lastEntry.mergeLimit.distance >= distance(lastEntry.coord, coordMerge)
+			) {
+				history.pop();
+				newEntry = {
+					coord: coordMerge,
+					accuracy: Math.min(location.coords.accuracy, lastEntry.accuracy),
+					timestamp: mergedTimestamp,
+					mergeLimit: {
+						distance: lastEntry.mergeLimit
+							? Math.min(
+									lastEntry.mergeLimit.distance -
+										distance(lastEntry.coord, coordMerge),
+									location.coords.accuracy,
+								)
+							: location.coords.accuracy,
+					},
+				};
+			}
+		}
+		if (newEntry === undefined) {
+			delete history.at(-1)?.mergeLimit;
 			newEntry = {
 				coord,
 				accuracy,
 				timestamp: location.timestamp,
+				mergeLimit: {
+					distance: accuracy,
+				},
 			};
 		}
 		this.locationHistory.set([...history, newEntry]);
